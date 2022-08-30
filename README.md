@@ -4,3 +4,4 @@ matrix was created using a pre-processing technique to extract the adjacencies o
 into a 10-dimensional one-hot-encoded vector. All the processed data have finally been combined into a useful dataset for graph-based neural network tasks.
 In summary, the processed dataset consists of 80,000 graphs consisting of nodes and edges. Moreover, a set of data augmentation techniques were used to enhance the data
 to more than 200K, including horizontal and vertical flipping and center cropping.
+
