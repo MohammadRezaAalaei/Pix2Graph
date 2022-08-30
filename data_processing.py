@@ -3,27 +3,7 @@ from torchvision import transforms
 from Utils import Scaler, extract_type, extract_adjacencies, data_augmentation, Space_layout_dataset, PadCenterCrop
 N_SAMPLES = 80000
 
-adj_scaler = Scaler(5)
-adj_scaler.filter.weight = torch.nn.Parameter(adj_scaler.scaler_filter)
-adj_scaler.filter.bias = torch.nn.Parameter(torch.tensor([0.], dtype=torch.float))
-front_scaler = Scaler(3)
-front_scaler.filter.weight = torch.nn.Parameter(front_scaler.scaler_filter)
-front_scaler.filter.bias = torch.nn.Parameter(torch.tensor([0.], dtype=torch.float))
-node_scaler = Scaler(3)
-node_scaler.filter.weight = torch.nn.Parameter(node_scaler.scaler_filter)
-node_scaler.filter.bias = torch.nn.Parameter(torch.tensor([0.], dtype=torch.float))
-random_xy = torch.load('random_xy.pt')
-print(random_xy.shape)
-scalers = {'front_scaler':front_scaler, 'node_scaler':node_scaler, 'adj_scaler':adj_scaler}
-RPLAN_path = 'floorplan_dataset/'
-g_features = []
-t_features = []
-mean_features = []
-edges = []
-index = []
-adjacency_matrix = []
-boundaries = []
-step = 0
+
 
 def update(adj, coo, nodes, t_list, idx, mean_list, boundary_list):
     global g_features, t_features, mean_features, edges, adjacency_matrix, boundaries, index
