@@ -23,6 +23,11 @@ class Scaler(nn.Module):
         self.filter = nn.Conv2d(1, 1, kernel_size, padding='same')
 
     def forward(self, x):
+        """
+        This forward function scales up the given space x
+        Arguments:
+            x: image of resolution(resolution*resolution) containing a single space
+        """
         x = self.filter(x)
         return x
 
@@ -75,6 +80,7 @@ def extract_adjacencies(node, nodes, adj_scaler):
     arguments:
         node: tensor of size (resolution, resolution) indicating the current node
         nodes: tensor of size (n_spaces, resolution, resolution) including all nodes
+        adj_scaler: a forward function of class Scaler
     returns:
         An adjacency list including 1 for adjacent spaces, else 0
     """
@@ -93,7 +99,9 @@ def extract_adjacencies(node, nodes, adj_scaler):
 
 
 
-def data_augmentation(from_data_point=0,
+def data_augmentation(
+                      path=None,
+                      from_data_point=0,
                       to_data_point=1000,
                       augmentation_type=None,
                       transformation= None,
@@ -102,10 +110,30 @@ def data_augmentation(from_data_point=0,
                       scalers=None,
                       type_extractor=None,
                       adjacency_extractor=None):
+    """
+    This function receives RPLAN dataset in pixel format and extracts graphical features from it
+    ---------------------------------------
+    Arguments:
+        path: The directory in which the RPLAN floorplan dataset exists
+        from_data_point: starting index of the dataset
+        to_data_point: ending index of the dataset
+        augmentation_type: One of 2 predefined augmentation methods: 'flip', 'crop'
+        transformation: torchvision.transforms.RandomHorizontalFlip() or torchvision.transforms.RandomVerticalFlip(1)
+        step: number of current iteration
+        random_xy: uniformly random matrices of shape [60000, 2] for adding some noise in the center crop process
+        scalers: A dictionary containing objects of class Scaler(adj_scaler, node_scaler, front_scaler)
+            adj_scaler: Is used to identify adjacencies of spaces.
+            node_scaler: Is used to modify the proportion of walls to spaces
+            front_scaler: Is used to scale the front door
+        type_extractor: extract_type function from the module Utils
+        adjacency_extractor: extract_adjacencies function from the module Utils
+
+
+    """
     global g_features, t_features, mean_features, edges, index, adjacency_matrix, boundaries, entrance
-    node_scaler, zone_scaler, adj_scaler = scalers['node_scaler'], scalers['zone_scaler'], scalers['adj_scaler']
+    node_scaler, front_scaler, adj_scaler = scalers['node_scaler'], scalers['front_scaler'], scalers['adj_scaler']
     for i, (j1, j2) in tqdm(enumerate(random_xy[from_data_point:to_data_point])):
-        img = Image.open(f'floorplan_dataset/{i}.png')
+        img = Image.open(path + f'{i}.png')
         if augmentation_type == 'flip':
             data_transforms = transforms.Compose([
                 transformation,
@@ -192,7 +220,7 @@ def data_augmentation(from_data_point=0,
         coo = (adj > 0).nonzero().t()
         if adj.shape[0] != len(g_list):
             continue
-        front_door = zone_scaler(front_door.view(1, 1, 64, 64)).squeeze()
+        front_door = front_scaler(front_door.view(1, 1, 64, 64)).squeeze()
         boundary[front_door!=0] = 0.3
         boundary_list = [boundary.clone() for _ in range(len(g_list))]
         boundary_list = torch.stack(boundary_list)
@@ -207,7 +235,9 @@ def data_augmentation(from_data_point=0,
 
 
 class Space_layout_dataset(InMemoryDataset):
-    def __init__(self, root, transform=None, pre_transform=None, features=None):
+
+    def __init__(self, root, transform=None, pre_transform=None, features=None, edges=None):
+        self.edges = edges
         self.features = features
         super().__init__(root, transform, pre_transform)
 
@@ -230,10 +260,10 @@ class Space_layout_dataset(InMemoryDataset):
         # Read data into huge `Data` list.
         # node_geometrical_features.shape = n_samples, n_spaces, resolution, resolution
         # edge_features.shape = n_samples, n_spaces, n_spaces
-        for i in range(len(index)):
+        for i in range(len(self.features)):
             data = Data(
                 x=self.features[i],
-                edge_index=edges[i]
+                edge_index=self.edges[i]
             )
             data = data.pin_memory()
             torch.save(data, os.path.join(self.processed_dir,
