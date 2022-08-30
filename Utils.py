@@ -54,50 +54,6 @@ class PadCenterCrop(object):
         return FF.center_crop(img, self.size)
 
 
-def extract_type(node, g_list):
-    """
-    This function extracts the type of each room
-    arguments:
-        node: tensor of size (resolution, resolution) indicating the current node
-        g_list: tensor of size (n_spaces, resolution, resolution), list of spaces seperated by their type
-    return:
-        A one hot encoded pytorch tensor indicating the type of current node
-    """
-    typ = torch.zeros(len(g_list))
-    for i in range(len(g_list)):
-        subtraction = g_list[i] - node
-        subtraction[subtraction < 0] = 0
-        if torch.sum(g_list[i]) - torch.sum(subtraction):
-            typ[i] = 1
-            break
-
-    return typ, node
-
-
-def extract_adjacencies(node, nodes, adj_scaler):
-    """
-    This function extracts the adjacencies of each room
-    arguments:
-        node: tensor of size (resolution, resolution) indicating the current node
-        nodes: tensor of size (n_spaces, resolution, resolution) including all nodes
-        adj_scaler: a forward function of class Scaler
-    returns:
-        An adjacency list including 1 for adjacent spaces, else 0
-    """
-    scaled = []
-    node = adj_scaler(node.view(1, 1, node.shape[0], node.shape[1])).detach().squeeze()
-    node[node != 0] = 1
-
-    adj_nodes = []
-    for i in nodes:
-        if torch.sum(torch.stack([node, i]), dim=0).max() > 1:
-            adj_nodes.append(1)
-        else:
-            adj_nodes.append(0)
-
-    return adj_nodes
-
-
 
 def data_augmentation(
                       path=None,
